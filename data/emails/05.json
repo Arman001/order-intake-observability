@@ -1,0 +1,7 @@
+{
+  "id": "05",
+  "from": "site@northwind-build.example",
+  "date": "2026-10-09",
+  "subject": "Order",
+  "body": "Hello,\n\nThe usual please.\n\nRegards,\nLee\nNorthwind Build"
+}

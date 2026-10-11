@@ -1,0 +1,7 @@
+{
+  "id": "03",
+  "from": "orders@client-co.example",
+  "date": "2026-10-08",
+  "subject": "October order",
+  "body": "Hi team,\n\nSame as last month, but double the bolts.\n\nThanks,\nSam\nClient Co"
+}

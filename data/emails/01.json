@@ -1,0 +1,7 @@
+{
+  "id": "01",
+  "from": "purchasing@acme-fab.example",
+  "date": "2026-10-05",
+  "subject": "PO 4471: bolts and brackets",
+  "body": "Hi,\n\nPlease supply the following on PO 4471:\n\n- 100 M8 hex bolts\n- 50 L brackets, 50 mm\n\nDelivery to our main dock as usual.\n\nThanks,\nDana\nAcme Fabrication"
+}

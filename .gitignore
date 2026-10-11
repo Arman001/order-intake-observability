@@ -1,0 +1,10 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+*.db
+mlruns/
+mlartifacts/
+outbox/*
+!outbox/.gitkeep
+.claude/
