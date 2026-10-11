@@ -20,7 +20,7 @@ def connect(db_path: Path = DB_PATH) -> sqlite3.Connection:
 def load_email(email_id: str, emails_dir: Path = EMAILS_DIR) -> dict:
     path = emails_dir / f"{email_id}.json"
     if not path.exists():
-        raise FileNotFoundError(f"No email with id {email_id!r} in {emails_dir}")
+        raise FileNotFoundError(f"No email with id {email_id!r} in {emails_dir.name}/")
     return json.loads(path.read_text())
 
 

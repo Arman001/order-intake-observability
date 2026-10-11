@@ -5,10 +5,10 @@ description = "A 4-step LangGraph order intake pipeline, traced with MLflow"
 requires-python = ">=3.11"
 dependencies = [
     "langgraph",
-    "langchain-groq",
     "mlflow>=3",
     "pydantic>=2",
     "python-dotenv",
+    "langchain-mistralai>=1.1.6",
 ]
 
 [dependency-groups]
@@ -21,4 +21,4 @@ package = false
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-m 'not live'"
-markers = ["live: calls the Groq API, needs GROQ_API_KEY (run with -m live)"]
+markers = ["live: calls the Mistral API, needs MISTRAL_API_KEY (run with -m live)"]
