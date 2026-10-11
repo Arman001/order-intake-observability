@@ -3,6 +3,7 @@ from contextlib import closing
 import pytest
 
 from app.db import connect
+from app.schemas import ClassifierOutput, ExtractionV1, ItemV1
 from data.seed import seed
 
 
@@ -25,13 +26,29 @@ class FakeLLM:
     def __init__(self, *answers):
         self.answers = list(answers)
         self.prompts = []
+        self.schemas = []
+        self.tools = []
 
-    def with_structured_output(self, schema):
+    def with_structured_output(self, schema, **kwargs):
+        self.schemas.append(schema)
+        return self
+
+    def bind_tools(self, tools, **kwargs):
+        self.tools.extend(tools)
         return self
 
     def invoke(self, prompt):
         self.prompts.append(prompt)
         return self.answers.pop(0)
+
+
+def order_llm(*items):
+    """A model that says "this is an order" and then extracts the given items."""
+    items = items or (ItemV1(sku="BOLT-M8", qty=100), ItemV1(sku="BRACKET-L50", qty=50))
+    return FakeLLM(
+        ClassifierOutput(is_order=True, reason="Lists items"),
+        ExtractionV1(items=list(items)),
+    )
 
 
 @pytest.fixture

@@ -23,7 +23,7 @@ def build_graph(llm, db_path: Path = DB_PATH, outbox_dir: Path = OUTBOX_DIR):
     graph = StateGraph(State)
 
     graph.add_node("classifier", partial(classifier, llm=llm))
-    graph.add_node("extractor", extractor)
+    graph.add_node("extractor", partial(extractor, llm=llm, db_path=db_path))
     graph.add_node("validator", partial(validator, db_path=db_path))
     graph.add_node(
         "executor", partial(executor, db_path=db_path, outbox_dir=outbox_dir)

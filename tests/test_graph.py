@@ -5,8 +5,9 @@ import pytest
 import app.graph
 from app.db import connect
 from app.graph import build_graph
-from app.schemas import ClassifierOutput
+from app.schemas import ClassifierOutput, ExtractionV1, ItemV1
 from tests.conftest import FakeLLM
+from tests.conftest import order_llm as make_order_llm
 
 
 def order_count(db_path):
@@ -27,7 +28,7 @@ def run(llm, db_path, outbox, email, version="v1"):
 
 @pytest.fixture
 def order_llm():
-    return FakeLLM(ClassifierOutput(is_order=True, reason="Lists items"))
+    return make_order_llm()
 
 
 def test_a_valid_order_runs_all_four_nodes(order_llm, db_path, outbox, email):
@@ -53,21 +54,19 @@ def test_not_an_order_stops_after_the_classifier(db_path, outbox, email):
 
 
 @pytest.mark.parametrize(
-    "extracted, status",
-    [
-        ({"items": [{"sku": "PTFE tape", "qty": 25}]}, "rejected"),
-        ({"items": []}, "rejected"),
-    ],
+    "items",
+    [[ItemV1(sku="PTFE tape", qty=25)], [], [ItemV1(sku="BOLT-M8", qty=5000)]],
 )
-def test_rejected_stops_after_the_validator(
-    order_llm, db_path, outbox, email, monkeypatch, extracted, status
-):
-    monkeypatch.setattr(app.graph, "extractor", lambda state: extracted)
+def test_rejected_stops_after_the_validator(db_path, outbox, email, items):
+    llm = FakeLLM(
+        ClassifierOutput(is_order=True, reason="Lists items"),
+        ExtractionV1(items=items),
+    )
     before = order_count(db_path)
-    state, visited = run(order_llm, db_path, outbox, email)
+    state, visited = run(llm, db_path, outbox, email)
 
     assert visited == ["classifier", "extractor", "validator"]
-    assert state["status"] == status
+    assert state["status"] == "rejected"
     assert order_count(db_path) == before
     assert not outbox.exists()
 
@@ -80,7 +79,7 @@ def test_needs_review_stops_after_the_validator(
         "needs_clarification": True,
         "clarification_reason": "no order history",
     }
-    monkeypatch.setattr(app.graph, "extractor", lambda state: extracted)
+    monkeypatch.setattr(app.graph, "extractor", lambda state, **kwargs: extracted)
     before = order_count(db_path)
     state, visited = run(order_llm, db_path, outbox, email, version="v2")
 

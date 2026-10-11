@@ -1,3 +1,4 @@
+from app.llm import structured
 from app.schemas import ClassifierOutput
 from app.state import State
 
@@ -19,7 +20,7 @@ def classifier(state: State, *, llm) -> dict:
     prompt = PROMPT.format(
         sender=email["from"], subject=email["subject"], body=email["body"]
     )
-    out = llm.with_structured_output(ClassifierOutput).invoke(prompt)
+    out = structured(llm, ClassifierOutput).invoke(prompt)
 
     update = {"is_order": out.is_order, "classifier_reason": out.reason}
     if not out.is_order:

@@ -21,8 +21,15 @@ def _clip(text: str, width: int) -> str:
     return text if len(text) <= width else text[: width - 3].rstrip() + "..."
 
 
-def _items(items: list[dict]) -> str:
-    return ", ".join(f"{item['qty']} {item['sku']}" for item in items)
+def _items(items: list[dict], width: int) -> str:
+    """As many whole items as fit, then how many were left out."""
+    parts = [f"{item['qty']} {item['sku']}" for item in items]
+    for shown in range(len(parts), 0, -1):
+        more = len(parts) - shown
+        text = ", ".join(parts[:shown]) + (f", +{more} more" if more else "")
+        if len(text) <= width:
+            return text
+    return f"{len(parts)} items"
 
 
 def node_line(name: str, update: dict) -> str:
@@ -34,7 +41,8 @@ def node_line(name: str, update: dict) -> str:
         summary = f"{kind}: {update['classifier_reason']}"
     elif name == "extractor":
         items = update["items"]
-        summary = f"{len(items)} items: {_items(items)}" if items else "no items"
+        count = f"{len(items)} items: "
+        summary = count + _items(items, WIDTH - 22 - len(count)) if items else "no items"
     elif name == "validator":
         summary = update["reason"]
         if update["status"] == "rejected":
@@ -44,7 +52,7 @@ def node_line(name: str, update: dict) -> str:
     else:
         summary = f"order {update['order_id']} saved, confirmation in outbox/"
 
-    head = f"{mark} {name:<10} {result:<8} "
+    head = f"{mark} {name:<10} {result:<8} "  # 22 characters
     return f"{color}{head}{_clip(summary, WIDTH - len(head))}{RESET}"
 
 

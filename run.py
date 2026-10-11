@@ -66,7 +66,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         state = run_email(args.email, args.version, llm=get_llm())
-    except (UnknownSenderError, FileNotFoundError) as error:
+    except (UnknownSenderError, FileNotFoundError, NotImplementedError) as error:
         print(f"{console.RED}Error: {error}{console.RESET}", file=sys.stderr)
         return 1
 
