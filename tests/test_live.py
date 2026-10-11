@@ -64,3 +64,40 @@ def test_v1_email_03_completes_with_a_wrong_order(llm, paths):
     assert state["status"] == "completed"
     assert items(state) != {"BOLT-M8": 400, "NUT-M8": 200, "WASHER-M8": 400}
     assert items(state).get("BOLT-M8") != 400
+
+
+# v2: every email against the expected-outcome table
+
+
+def test_v2_email_03_uses_history_and_doubles_the_bolts(llm, paths):
+    state = run.run_email("03", "v2", llm=llm, **paths)
+
+    assert state["status"] == "completed"
+    assert items(state) == {"BOLT-M8": 400, "NUT-M8": 200, "WASHER-M8": 400}
+    assert {item["qty_source"] for item in state["items"]} == {"from_history"}
+
+
+def test_v2_email_05_needs_review_instead_of_guessing(llm, paths):
+    state = run.run_email("05", "v2", llm=llm, **paths)
+
+    assert state["status"] == "needs_review"
+    assert "order_id" not in state
+
+
+def test_v2_email_01_completes_with_explicit_quantities(llm, paths):
+    state = run.run_email("01", "v2", llm=llm, **paths)
+
+    assert state["status"] == "completed"
+    assert items(state) == {"BOLT-M8": 100, "BRACKET-L50": 50}
+    assert {item["qty_source"] for item in state["items"]} == {"explicit"}
+
+
+def test_v2_email_02_is_not_an_order(llm, paths):
+    assert run.run_email("02", "v2", llm=llm, **paths)["status"] == "not_an_order"
+
+
+def test_v2_email_04_is_rejected_for_an_unknown_sku(llm, paths):
+    state = run.run_email("04", "v2", llm=llm, **paths)
+
+    assert state["status"] == "rejected"
+    assert "unknown SKU" in state["reason"]

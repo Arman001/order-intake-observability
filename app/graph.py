@@ -36,3 +36,19 @@ def build_graph(llm, db_path: Path = DB_PATH, outbox_dir: Path = OUTBOX_DIR):
     graph.add_edge("executor", END)
 
     return graph.compile()
+
+
+if __name__ == "__main__":
+    # uv run python -m app.graph   writes the diagram used in the video
+    from app.config import ROOT
+
+    docs = ROOT / "docs"
+    docs.mkdir(exist_ok=True)
+    drawing = build_graph(llm=None).get_graph()
+    (docs / "graph.mmd").write_text(drawing.draw_mermaid())
+    print(f"Wrote {docs.name}/graph.mmd")
+    try:
+        (docs / "graph.png").write_bytes(drawing.draw_mermaid_png())
+        print(f"Wrote {docs.name}/graph.png")
+    except Exception as error:  # the PNG is rendered by an online service
+        print(f"No PNG ({type(error).__name__}); paste graph.mmd into mermaid.live")

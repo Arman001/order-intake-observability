@@ -2,10 +2,11 @@ from contextlib import closing
 
 import pytest
 
-import app.graph
+from langchain_core.messages import AIMessage
+
 from app.db import connect
 from app.graph import build_graph
-from app.schemas import ClassifierOutput, ExtractionV1, ItemV1
+from app.schemas import ClassifierOutput, ExtractionV1, ExtractionV2, ItemV1, ItemV2
 from tests.conftest import FakeLLM
 from tests.conftest import order_llm as make_order_llm
 
@@ -71,22 +72,39 @@ def test_rejected_stops_after_the_validator(db_path, outbox, email, items):
     assert not outbox.exists()
 
 
-def test_needs_review_stops_after_the_validator(
-    order_llm, db_path, outbox, email, monkeypatch
-):
-    extracted = {
-        "items": [],
-        "needs_clarification": True,
-        "clarification_reason": "no order history",
-    }
-    monkeypatch.setattr(app.graph, "extractor", lambda state, **kwargs: extracted)
+def test_needs_review_stops_after_the_validator(db_path, outbox, email):
+    # The email 05 path: nothing to look up, so v2 asks instead of guessing.
+    llm = FakeLLM(
+        ClassifierOutput(is_order=True, reason="Asks for the usual"),
+        AIMessage(content=""),
+        ExtractionV2(
+            needs_clarification=True, clarification_reason="no order history", items=[]
+        ),
+    )
     before = order_count(db_path)
-    state, visited = run(order_llm, db_path, outbox, email, version="v2")
+    state, visited = run(llm, db_path, outbox, email, version="v2")
 
     assert visited == ["classifier", "extractor", "validator"]
     assert state["status"] == "needs_review"
+    assert state["reason"] == "no order history"
     assert order_count(db_path) == before
     assert not outbox.exists()
+
+
+def test_v2_completes_with_items_from_history(db_path, outbox, email):
+    llm = FakeLLM(
+        ClassifierOutput(is_order=True, reason="Refers to last month"),
+        AIMessage(content=""),
+        ExtractionV2(
+            needs_clarification=False,
+            items=[ItemV2(sku="BOLT-M8", qty=400, qty_source="from_history")],
+        ),
+    )
+    state, visited = run(llm, db_path, outbox, email, version="v2")
+
+    assert visited == ["classifier", "extractor", "validator", "executor"]
+    assert state["status"] == "completed"
+    assert "400 x BOLT-M8" in (outbox / f"{state['order_id']}.txt").read_text()
 
 
 def test_the_classifier_prompt_contains_the_email(order_llm, db_path, outbox, email):

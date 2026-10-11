@@ -8,6 +8,8 @@ import sys
 from contextlib import closing
 from pathlib import Path
 
+import httpx
+
 from app import console
 from app.config import DB_PATH, EMAILS_DIR, OUTBOX_DIR
 from app.db import UnknownSenderError, connect, load_email, resolve_customer
@@ -66,8 +68,14 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         state = run_email(args.email, args.version, llm=get_llm())
-    except (UnknownSenderError, FileNotFoundError, NotImplementedError) as error:
+    except (UnknownSenderError, FileNotFoundError) as error:
         print(f"{console.RED}Error: {error}{console.RESET}", file=sys.stderr)
+        return 1
+    except httpx.HTTPStatusError as error:
+        if error.response.status_code != 429:
+            raise
+        message = "Rate limit reached. Wait a minute and run again."
+        print(f"{console.RED}Error: {message}{console.RESET}", file=sys.stderr)
         return 1
 
     trace_id = tag_last_trace(state)

@@ -23,7 +23,9 @@ def _clip(text: str, width: int) -> str:
 
 def _items(items: list[dict], width: int) -> str:
     """As many whole items as fit, then how many were left out."""
-    parts = [f"{item['qty']} {item['sku']}" for item in items]
+    parts = [
+        f"{'?' if item['qty'] is None else item['qty']} {item['sku']}" for item in items
+    ]
     for shown in range(len(parts), 0, -1):
         more = len(parts) - shown
         text = ", ".join(parts[:shown]) + (f", +{more} more" if more else "")
@@ -42,7 +44,12 @@ def node_line(name: str, update: dict) -> str:
     elif name == "extractor":
         items = update["items"]
         count = f"{len(items)} items: "
-        summary = count + _items(items, WIDTH - 22 - len(count)) if items else "no items"
+        if items:
+            summary = count + _items(items, WIDTH - 22 - len(count))
+        elif update.get("needs_clarification"):
+            summary = "no items, asks for clarification"
+        else:
+            summary = "no items"
     elif name == "validator":
         summary = update["reason"]
         if update["status"] == "rejected":

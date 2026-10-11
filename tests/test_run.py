@@ -136,3 +136,25 @@ def test_a_long_item_list_is_cut_on_a_whole_item(paths, capsys):
     extractor_line = plain_lines(capsys.readouterr().out)[2]
     assert extractor_line.endswith("more")
     assert "5 items: 100 BOLT-M8" in extractor_line
+
+
+def test_an_unknown_qty_is_shown_as_a_question_mark():
+    update = {"items": [{"sku": "BOLT-M8", "qty": None, "qty_source": "unknown"}]}
+
+    assert "1 items: ? BOLT-M8" in console.node_line("extractor", update)
+
+
+def test_a_clarification_request_is_shown_on_the_extractor_line():
+    update = {"items": [], "needs_clarification": True}
+
+    line = console.node_line("extractor", update)
+    assert "asks for clarification" in line
+    assert line.startswith(console.GREEN)
+
+
+def test_a_review_shows_a_yellow_validator_line():
+    update = {"status": "needs_review", "reason": "no order history"}
+
+    line = console.node_line("validator", update)
+    assert line.startswith(console.YELLOW)
+    assert "review" in line
